@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kalkulator & Simulasi KPR Interaktif</title>
+  <style>
+    :root {
+      --primary: #0f766e;
+      --primary-light: #ccfbf1;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); margin: 0; padding: 24px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; margin-bottom: 4px; }
+    p.subtitle { color: var(--muted); margin-top: 0; margin-bottom: 24px; font-size: 0.95rem; }
+    .grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 24px; }
+    @media (max-width: 850px) { .grid { grid-template-columns: 1fr; } }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+    .section-title { font-size: 1rem; font-weight: 600; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .control-group { margin-bottom: 16px; }
+    .control-header { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 6px; font-weight: 500; }
+    .control-header span.val { color: var(--primary); font-weight: 700; }
+    input[type="range"] { width: 100%; accent-color: var(--primary); cursor: pointer; }
+    .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    input[type="number"] { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; }
+    .summary-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+    .stat-box { background: var(--bg); padding: 14px; border-radius: 8px; border: 1px solid var(--border); }
+    .stat-box.highlight { background: var(--primary-light); border-color: #99f6e4; }
+    .stat-label { font-size: 0.8rem; color: var(--muted); margin-bottom: 4px; }
+    .stat-value { font-size: 1.15rem; font-weight: 700; color: var(--text); }
+    .stat-box.highlight .stat-value { color: var(--primary); }
+    .table-wrapper { max-height: 360px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; text-align: right; }
+    th { position: sticky; top: 0; background: #f1f5f9; padding: 10px 8px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border); }
+    th:first-child, td:first-child { text-align: center; }
+    td { padding: 8px; border-bottom: 1px solid var(--border); }
+    tr.floating-row { background-color: #fffbeb; }
+    tr.prepay-row { background-color: #ecfdf5; font-weight: 600; }
+    .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+    .badge-fix { background: #e0f2fe; color: #0369a1; }
+    .badge-float { background: #fef3c7; color: #b45309; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Simulasi KPR Interaktif (Fixed, Floating & Partial Repayment)</h1>
+  <p class="subtitle">Sesuaikan parameter pinjaman untuk melihat perubahan cicilan dan komposisi pokok vs bunga.</p>
+
+  <div class="grid">
+    <!-- PANEL INPUT -->
+    <div class="card">
+      <div class="section-title">1. Parameter Utama KPR</div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <label>Harga Properti</label>
+          <span class="val" id="lbl-harga">Rp 1.500.000.000</span>
+        </div>
+        <input type="range" id="harga" min="200000000" max="10000000000" step="50000000" value="1500000000" />
+      </div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <label>Uang Muka / DP (<span id="lbl-dp-persen">20</span>%)</label>
+          <span class="val" id="lbl-dp">Rp 300.000.000</span>
+        </div>
+        <input type="range" id="dpPersen" min="0" max="80" step="5" value="20" />
+      </div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <label>Tenor Pinjaman</label>
+          <span class="val" id="lbl-tenor">15 Tahun (180 Bln)</span>
+        </div>
+        <input type="range" id="tenor" min="1" max="30" step="1" value="15" />
+      </div>
+
+      <div class="section-title" style="margin-top: 24px;">2. Skema Suku Bunga</div>
+
+      <div class="row-2">
+        <div class="control-group">
+          <div class="control-header">
+            <label>Bunga Fixed (%)</label>
+            <span class="val" id="lbl-fix-rate">5.5%</span>
+          </div>
+          <input type="range" id="fixRate" min="1" max="15" step="0.25" value="5.5" />
+        </div>
+
+        <div class="control-group">
+          <div class="control-header">
+            <label>Masa Fixed (Thn)</label>
+            <span class="val" id="lbl-fix-year">3 Thn</span>
+          </div>
+          <input type="range" id="fixYear" min="1" max="15" step="1" value="3" />
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-header">
+          <label>Estimasi Bunga Floating (%)</label>
+          <span class="val" id="lbl-float-rate">11.0%</span>
+        </div>
+        <input type="range" id="floatRate" min="5" max="18" step="0.25" value="11.0" />
+      </div>
+
+      <div class="section-title" style="margin-top: 24px;">3. Simulasi Pelunasan Sebagian (Opsional)</div>
+      <div class="row-2">
+        <div class="control-group">
+          <label style="font-size:0.85rem; display:block; margin-bottom:4px;">Nominal Pelunasan (Rp)</label>
+          <input type="number" id="prepayAmount" value="0" step="10000000" min="0" />
+        </div>
+        <div class="control-group">
+          <label style="font-size:0.85rem; display:block; margin-bottom:4px;">Dilakukan di Bulan Ke-</label>
+          <input type="number" id="prepayMonth" value="36" min="1" max="360" />
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="control-header">
+          <label>Biaya Penalti Pelunasan (%)</label>
+          <span class="val" id="lbl-penalty">2.0%</span>
+        </div>
+        <input type="range" id="penaltyRate" min="0" max="5" step="0.5" value="2" />
+      </div>
+    </div>
+
+    <!-- PANEL OUTPUT -->
+    <div class="card">
+      <div class="section-title">Ringkasan Hasil Simulasi</div>
+
+      <div class="summary-cards">
+        <div class="stat-box">
+          <div class="stat-label">Plafon Pinjaman (Pokok)</div>
+          <div class="stat-value" id="res-plafon">Rp 0</div>
+        </div>
+        <div class="stat-box highlight">
+          <div class="stat-label">Cicilan Masa Fixed / Bln</div>
+          <div class="stat-value" id="res-cicilan-fix">Rp 0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Est. Cicilan Floating / Bln</div>
+          <div class="stat-value" id="res-cicilan-float">Rp 0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Total Bunga Dibayarkan</div>
+          <div class="stat-value" id="res-total-bunga">Rp 0</div>
+        </div>
+      </div>
+
+      <div id="prepay-info" style="display:none; background:#ecfdf5; border:1px solid #a7f3d0; padding:10px 14px; border-radius:8px; font-size:0.85rem; margin-bottom:16px; color:#065f46;"></div>
+
+      <div class="section-title">Tabel Amortisasi Bulanan</div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Bln</th>
+              <th>Skema</th>
+              <th>Cicilan</th>
+              <th>Pokok</th>
+              <th>Bunga</th>
+              <th>Sisa Pokok</th>
+            </tr>
+          </thead>
+          <tbody id="amortization-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const formatRp = (num) => "Rp " + Math.round(num).toLocaleString("id-ID");
+
+  function calcPMT(ratePerMonth, nper, pv) {
+    if (ratePerMonth === 0) return pv / nper;
+    return (pv * ratePerMonth) / (1 - Math.pow(1 + ratePerMonth, -nper));
+  }
+
+  function updateSimulation() {
+    const harga = parseFloat(document.getElementById("harga").value);
+    const dpPersen = parseFloat(document.getElementById("dpPersen").value);
+    const tenor = parseInt(document.getElementById("tenor").value);
+    const fixRate = parseFloat(document.getElementById("fixRate").value);
+    let fixYear = parseInt(document.getElementById("fixYear").value);
+    const floatRate = parseFloat(document.getElementById("floatRate").value);
+    const prepayAmount = parseFloat(document.getElementById("prepayAmount").value) || 0;
+    const prepayMonth = parseInt(document.getElementById("prepayMonth").value) || 0;
+    const penaltyRate = parseFloat(document.getElementById("penaltyRate").value);
+
+    if (fixYear > tenor) {
+      fixYear = tenor;
+      document.getElementById("fixYear").value = tenor;
+    }
+
+    const dpNominal = harga * (dpPersen / 100);
+    const plafon = harga - dpNominal;
+    const totalMonths = tenor * 12;
+    const fixMonths = fixYear * 12;
+
+    // Update labels
+    document.getElementById("lbl-harga").textContent = formatRp(harga);
+    document.getElementById("lbl-dp-persen").textContent = dpPersen;
+    document.getElementById("lbl-dp").textContent = formatRp(dpNominal);
+    document.getElementById("lbl-tenor").textContent = `${tenor} Tahun (${totalMonths} Bln)`;
+    document.getElementById("lbl-fix-rate").textContent = `${fixRate.toFixed(2)}%`;
+    document.getElementById("lbl-fix-year").textContent = `${fixYear} Thn`;
+    document.getElementById("lbl-float-rate").textContent = `${floatRate.toFixed(2)}%`;
+    document.getElementById("lbl-penalty").textContent = `${penaltyRate.toFixed(1)}%`;
+
+    let balance = plafon;
+    let totalInterest = 0;
+    let firstFixInstallment = 0;
+    let firstFloatInstallment = 0;
+    let currentRate = fixRate / 100 / 12;
+    let currentInstallment = calcPMT(currentRate, totalMonths, balance);
+
+    const tbody = document.getElementById("amortization-body");
+    tbody.innerHTML = "";
+
+    let prepayNote = "";
+
+    for (let m = 1; m <= totalMonths; m++) {
+      if (balance <= 0) break;
+
+      const isFloating = m > fixMonths;
+      if (m === fixMonths + 1) {
+        currentRate = floatRate / 100 / 12;
+        const remainingMonths = totalMonths - m + 1;
+        currentInstallment = calcPMT(currentRate, remainingMonths, balance);
+      }
+
+      if (m === 1) firstFixInstallment = currentInstallment;
+      if (m === fixMonths + 1) firstFloatInstallment = currentInstallment;
+
+      const interest = balance * currentRate;
+      let principal = currentInstallment - interest;
+      if (principal > balance) principal = balance;
+
+      balance -= principal;
+      totalInterest += interest;
+
+      let isPrepayRow = false;
+      if (prepayAmount > 0 && m === prepayMonth && balance > 0) {
+        const actualPrepay = Math.min(prepayAmount, balance);
+        const penaltyFee = actualPrepay * (penaltyRate / 100);
+        balance -= actualPrepay;
+        isPrepayRow = true;
+
+        const remainingMonthsAfter = totalMonths - m;
+        if (remainingMonthsAfter > 0 && balance > 0) {
+          currentInstallment = calcPMT(currentRate, remainingMonthsAfter, balance);
+          if (m >= fixMonths) firstFloatInstallment = currentInstallment;
+        }
+        prepayNote = `Pelunasan sebagian <strong>${formatRp(actualPrepay)}</strong> di bulan ke-${m} (Penalti ${penaltyRate}%: <strong>${formatRp(penaltyFee)}</strong>). Sisa pokok turun menjadi <strong>${formatRp(balance)}</strong>.`;
+      }
+
+      const row = document.createElement("tr");
+      if (isPrepayRow) row.className = "prepay-row";
+      else if (isFloating) row.className = "floating-row";
+
+      row.innerHTML = `
+        <td>${m}</td>
+        <td><span class="badge ${isFloating ? 'badge-float' : 'badge-fix'}">${isFloating ? 'Floating' : 'Fixed'}</span></td>
+        <td>${formatRp(principal + interest)}</td>
+        <td>${formatRp(principal)}</td>
+        <td>${formatRp(interest)}</td>
+        <td>${formatRp(balance)}</td>
+      `;
+      tbody.appendChild(row);
+    }
+
+    document.getElementById("res-plafon").textContent = formatRp(plafon);
+    document.getElementById("res-cicilan-fix").textContent = formatRp(firstFixInstallment);
+    document.getElementById("res-cicilan-float").textContent = fixYear >= tenor ? "-" : formatRp(firstFloatInstallment);
+    document.getElementById("res-total-bunga").textContent = formatRp(totalInterest);
+
+    const prepayBox = document.getElementById("prepay-info");
+    if (prepayNote) {
+      prepayBox.style.display = "block";
+      prepayBox.innerHTML = prepayNote;
+    } else {
+      prepayBox.style.display = "none";
+    }
+  }
+
+  document.querySelectorAll("input").forEach((el) => {
+    el.addEventListener("input", updateSimulation);
+  });
+
+  updateSimulation();
+</script>
+
+</body>
+</html>
